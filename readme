@@ -1,0 +1,23 @@
+This tool checks all your Opus Magnum solutions, compares them again the leaderboard, and reports which are pareto and should be submitted.
+If you're on Windows, it will automatically find your save folder.  Otherwise, you'll need to add it manually in hunt.py::root_folders
+
+It's not very pretty, but it works. If people like this and I'm not too lazy, I might throw a better UI on it.
+
+To use run hunt.py and enter the number on the menu to do the action
+
+1. Rescan
+    Counts up how many new files there are that need to be check/recheck
+2. Process
+    Gathers stats on new/updated files and stores them a database.
+3. Mismatch
+    Reports which solution parsed scores don't match their computed scores
+4. Duplicate Scores
+    Reports when multiple solutions have identical scores.  If one is pareto, they'd both get reported and I find this annoying.
+5. Duplicate Names
+    Reports when multiple solutions have the same name.  It can be a bit confusing to find the solution you're looking for if they have the same name.
+6. Refresh leaderboard cache
+    After processing local files, this action checks the online leaderboard.  It will only check the leaderboards for which you currently have solutions that might be pareto.
+7. Pareto
+    Reports all your solutions which would be pareto if submitted to the global leaderboard.  Be sure to run #6 first
+9. Process -> update cache -> report paretos
+    This is what I use after I've cleaned up all the mismatched/duplicates first.

@@ -1,0 +1,4 @@
+*.pyc
+cache.db
+cache.db-journal
+.vscode/
