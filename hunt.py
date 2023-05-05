@@ -1,5 +1,4 @@
 import os
-from glob import glob
 
 from solution import Solution
 import db
@@ -12,7 +11,7 @@ root_folders = []
 # if on windows, auto find my documents and save folder
 if os.name == 'nt':
     p = os.path.expanduser(r"~\Documents\My Games\Opus Magnum")
-    for folder in glob('*', root_dir=p):
+    for folder in os.listdir(p):
         full = os.path.join(p, folder)
         if folder.isnumeric() and os.path.isdir(full):
             root_folders.append(full)
@@ -26,9 +25,10 @@ def scan_local():
     # files on disk
     local_files = dict()
     for folder in root_folders:
-        for f in glob('*.solution', root_dir=folder):
-            full_path = os.path.join(folder, f)
-            local_files[full_path] = os.path.getmtime(full_path)
+        for f in os.listdir(folder):
+            if f.endswith('.solution'):
+                full_path = os.path.join(folder, f)
+                local_files[full_path] = os.path.getmtime(full_path)
     lfs = set(local_files.keys())
 
     # files in database
@@ -44,6 +44,7 @@ def scan_local():
     # things where local file is newer than database (or not in db)
     to_check = set(file for file, ts in local_files.items() if ts > db_files.get(file, 0))
 
+    # todo: cache the puzzle type of each file to save read times
     solutions = set(Solution(f) for f in to_check)
     solutions = set(s for s in solutions if s.puzzle_name + '.puzzle' in tracked_puzzles)
 
@@ -130,10 +131,10 @@ def mismatch(verbose=False):
     mpCost, mpCycles, mpArea, mpInstructions,
     mcCost, mcCycles, mcArea, mcInstructions    
     FROM local
-    WHERE mpCost!=mcCost
-    OR mpCycles!=mcCycles
-    OR mpArea!=mcArea 
-    OR mpInstructions!=mcInstructions """
+    WHERE mpCost         != mcCost
+    OR    mpCycles       != mcCycles
+    OR    mpArea         != mcArea 
+    OR    mpInstructions != mcInstructions """
     bads = db.con.execute(sql).fetchall()
 
     if verbose and bads:
@@ -150,7 +151,7 @@ def mismatch(verbose=False):
 def duplicate_scores(verbose=False):
     sql = """SELECT puzzle_name, count(*) as c, group_concat(solution_file,","), group_concat(solution_name,","), * FROM local
 WHERE valid
-GROUP BY puzzle_name, mcCost, mcCycles, mpArea, mcInstructions, mcHeight, mcWidth, mcRate, mcAreaInf, mcHeightInf, mcWidthInf, mcTrackless, mcOverlap
+GROUP BY puzzle_name, mcCost, mcCycles, mcArea, mcInstructions, mcHeight, mcWidth, mcRate, mcAreaInf, mcHeightInf, mcWidthInf, mcTrackless, mcOverlap
 HAVING c>1
 ORDER BY puzzle_name, solution_name"""
     bads = db.con.execute(sql).fetchall()
@@ -318,19 +319,20 @@ solution_file"""
     return paretos
 
 
-def check_cache(paretos):
-    bads = set(p[3] for p in paretos if p[-1] == 0)
+def check_cache(paretos, force=False):
+    bads = set(p[3] for p in paretos if p[-1] == 0 or force)
     return bads
 
 
 if __name__ == '__main__':
-    tracked_puzzles = glob('*.puzzle', root_dir='puzzle')
+    tracked_puzzles = [f for f in os.listdir('puzzle') if f.endswith('.puzzle')]
     print(len(tracked_puzzles), 'tracked puzzles')
 
     local_stats = scan_local()
     while True:
         paretos = get_paretos()
         bad_cache = check_cache(paretos)
+        bad_cache2 = check_cache(paretos, True)
 
         print('---------- Menu ----------')
         print(f'1. Rescan solutions ({len(local_stats["local"])} files found, {len(local_stats["db"])} tracked)')
@@ -347,7 +349,8 @@ if __name__ == '__main__':
 
         # paretos:
         print(f'6. Refresh leaderboard cache ({len(bad_cache)})')
-        print(f'7. Pareto ({len(paretos)})')
+        print(f'7. Force leaderboard cache ({len(bad_cache2)})')
+        print(f'8. Pareto ({len(paretos)})')
         # todo, make a mode that prioritizes solutions that kill existing paretos.  kind of hard with multiple manifolds though
 
         print('9. Process -> update cache -> report paretos')
@@ -361,7 +364,7 @@ if __name__ == '__main__':
             local_stats = scan_local()
         elif m == '2':
             process_solutions()
-
+            local_stats = scan_local()
         elif m == '3':
             mismatch(True)
         elif m == '4':
@@ -370,10 +373,16 @@ if __name__ == '__main__':
             duplicate_names(True)
 
         elif m == '6':
+            # todo: add some kind of timeout to check leaderboard if it's been a while
+            # even if the current cache is newer than the last file changes
             for bc in check_cache(get_paretos()):
                 zlbb.update_community(bc)
         elif m == '7':
+            for bc in check_cache(get_paretos(), True):
+                zlbb.update_community(bc)
+        elif m == '8':
             get_paretos(True)
+        # todo: new action, it won't be easy, but something that finds any record holder
 
         elif m == '9':  # rerun all new, check the leaderboard, report
             process_solutions()
