@@ -193,8 +193,7 @@ def get_paretos(verbose=False):
     # so, i'm going to be "lazy" and just count out the index of what I need in the touple.
     # sue me
 
-    sqlVic = """
-    SELECT a.*, IFNULL(a.last_check < community_cache.last_check, 0) as upToDate FROM local a
+    sqlVic = """SELECT a.*, IFNULL(a.last_check < community_cache.last_check, 0) as upToDate FROM local a
 LEFT JOIN community_cache ON a.puzzle_name = community_cache.puzzle_name
 WHERE a.valid
 -- there can't be a solution in community better than this one
@@ -389,6 +388,7 @@ if __name__ == '__main__':
             for bc in check_cache(get_paretos()):
                 zlbb.update_community(bc)
             get_paretos(True)
+            local_stats = scan_local()
 
         elif m == '0' or m == '':
             break

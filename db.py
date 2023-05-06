@@ -55,4 +55,6 @@ CREATE TABLE IF NOT EXISTS "community" (
 	"mLoop"			INTEGER,
 	PRIMARY KEY("solution_file")
 )	""")
+con.execute("""CREATE INDEX IF NOT EXISTS "community_puzzle_name" ON "community" ( "puzzle_name" )""")
+con.execute("""CREATE INDEX IF NOT EXISTS "local_puzzle_name" ON "local" ( "puzzle_name" )""")
 con.commit()
