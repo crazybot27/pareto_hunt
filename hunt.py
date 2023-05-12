@@ -426,7 +426,7 @@ def get_records(verbose=False):
 
             best = sorted((score_whole(sol, metric), sol, sol[1]) for sol in both)[0]
             if best[-1] != 'db':
-                recs.setdefault(best[1], []).append(metric['id'])
+                recs.setdefault(best[1], []).append(metric['displayName'])
 
     srecs = sorted((rec, sorted(cats)) for rec, cats in recs.items())
 
