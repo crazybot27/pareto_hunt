@@ -113,22 +113,22 @@ def get_metrics(sol):
 
     if to <= 0 or tc <= 0 or err or to == math.inf:
         # technically, the leaderboard makes a distinction between 0 and inf, but I'm lazy
-        metrics |= {
+        metrics.update({
             'mcRate': math.inf,
             'mcAreaInf': math.inf,
             'mcHeightInf': math.inf,
             'mcWidthInf': math.inf,
             'mcLoop': 0,
-        }
+        })
     else:
         # print('rate?', tc, to)
-        metrics |= {
+        metrics.update({
             'mcRate': math.ceil(tc/to*100)/100,
             'mcAreaInf': get_metric(v, b'steady state area'),
             'mcHeightInf': get_metric(v, b'steady state height'),
             'mcWidthInf': get_metric(v, b'steady state width*2')/2,
             'mcLoop': 1,
-        }
+        })
 
     if zlbb.puzzles[sol.puzzle_name]['type'] == 'PRODUCTION':
         metrics['mcHeight'] = None
