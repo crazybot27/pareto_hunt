@@ -71,13 +71,39 @@ def update_community(pn):
 
 
 def update_all():
-    url = '''https://zlbb.faendir.com/om/puzzles'''
-    raw = urllib.request.urlopen(url).read().decode('utf-8')
-    jj = json.loads(raw)
-    for j in jj:
+    for j in puzzles.values():
         sql = "SELECT * FROM community WHERE puzzle_name=?"
         rows = db.con.execute(sql, [j['id']]).fetchall()
         print(j['id'], len(rows))
 
         # if len(rows) == 0:
         update_community(j['id'])
+
+
+def get_puzzles():
+    print('Getting puzzle list')
+    url = 'https://zlbb.faendir.com/om/puzzles'
+    raw = urllib.request.urlopen(url).read().decode('utf-8')
+    jj = json.loads(raw)
+
+    return {j['id']: j for j in jj}
+
+
+def get_categories():
+    print('Getting tracked categories')
+    url = 'https://zlbb.faendir.com/om/categories'
+    raw = urllib.request.urlopen(url).read().decode('utf-8')
+    jj = json.loads(raw)
+
+    return jj
+
+
+def get_puzzle_name(puz):
+    if puz in puzzles:
+        return puzzles[puz]['displayName']
+    return puz
+
+
+# todo: cache these locally?
+puzzles = get_puzzles()
+categories = get_categories()

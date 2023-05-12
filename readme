@@ -21,5 +21,5 @@ To use run hunt.py and enter the number on the menu to do the action
     The previous version only updates the cache if the cache is older than any local modifications. If it's been a while and you think the leaderboard has new submissions that out pareto yours, use this option.
 8. Pareto
     Reports all your solutions which would be pareto if submitted to the global leaderboard.  Be sure to run #6 first
-9. Process -> update cache -> report paretos
-    This is what I use after I've cleaned up all the mismatched/duplicates first.
+9. Just records
+    Reports all your pareto solutions which would win a tracked category.  Ties beyond the hard defined metrics default to the existing solutions.

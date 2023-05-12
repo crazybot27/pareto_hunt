@@ -32,6 +32,17 @@ remap["OM2023_WO_CoolEarrings"] = "w2946693353"
 remap["OM2023_W6_BicrystalTransceiver"] = "w2946687073"
 remap["OM2023_W7_WarpFuel"] = "w2946687209"
 
+remap["OM2021Demo_HornSilver"] = "w2513871683"
+remap["OM2021Demo_GreenVitriol"] = "w2539581468"
+remap["OM2021Demo_FerrousWheel"] = "w2565611826"
+remap["OM2021Demo_ArtificialOre"] = "w2591419339"
+remap["OM2022Weeklies_MartialRegulus"] = "w2827119474"
+remap["OM2022Weeklies_PhilosophersCatalyst"] = "w2868339730"
+remap["OM2022Weeklies_NightmareFuel"] = "w2829050875"
+remap["OM2022Weeklies_IgnitionCord"] = "w2839120106"
+remap["OM2022Weeklies_Cuprite"] = "w2868328394"
+remap["OM2022Weeklies_LustrousSyrup"] = "w2868331650"
+
 
 class Solution():
     def __init__(self, full_path):

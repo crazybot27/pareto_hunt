@@ -1,3 +1,4 @@
+import math
 import os
 
 from solution import Solution
@@ -82,7 +83,6 @@ def process_solutions():
     db.con.commit()
 
     # start processing new files and those which are updated since last scan
-    # todo: maybe shuffle
     for f in local_stats['new'] | local_stats['update']:
         sol = Solution(f)
         if sol.scores == 4 and sol.area > omsim.MAX_AREA:
@@ -140,7 +140,7 @@ def mismatch(verbose=False):
     if verbose and bads:
         print('Score mismatch found. Please rerun the following in Opus Magnum:')
         for row in bads:
-            file = os.path.split(row[0])[1]
+            file = os.path.basename(row[0])
             print('{} "{}" parse({}g/{}c/{}a/{}i) != computed(c{}g/{}c/{}a/{}i)'.format(file, *row[1:]))
 
     if len(bads) == 0:
@@ -163,7 +163,7 @@ ORDER BY puzzle_name, solution_name"""
             files = bad[2].split(',')
             names = bad[3].split(',')
             for file, name in zip(files, names):
-                file = os.path.split(file)[1]
+                file = os.path.basename(file)
                 print(f'    {file}, "{name}"')
 
     if len(bads) == 0:
@@ -181,11 +181,30 @@ ORDER BY puzzle_name, solution_name"""
     if verbose and bads:
         print('Some solutions contain duplicate names which makes it harder to find the one you want.  Consider renaming them?')
         for bad in bads:
-            print(f'{os.path.split(bad[0])[1]}, "{bad[2]}", {bad[3]} copies')
+            print(f'{os.path.basename(bad[0])}, "{bad[2]}", {bad[3]} copies')
 
     if len(bads) == 0:
         return 'None'
     return len(bads)
+
+
+def record_string(record):
+    puzzle_name = zlbb.get_puzzle_name(record[0])
+    file = os.path.basename(record[1])
+
+    flags = ''
+    if record[13]:
+        flags += 'T'
+    if record[14]:
+        flags += 'O'
+    if record[15]:
+        flags += 'L'
+
+    r = record  # lazy copy/paste
+    fstr = f'{puzzle_name:18} {file:20} "{r[2]}"  {r[3]}g/{r[4]}c/{r[5]}a/{r[6]}i/{r[7]}h/{r[8]}w  {r[9]}r/{r[10]}A∞/{r[11]}H∞/{r[12]}W∞  {flags}'
+    fstr2 = f'{puzzle_name:18}|{file:20}|{r[2]}|{r[3]}|{r[4]}|{r[5]}|{r[6]}|{r[7]}|{r[8]}|{r[9]}|{r[10]}|{r[11]}|{r[12]}|{flags}'
+    # print(r)
+    return fstr
 
 
 def get_paretos(verbose=False):
@@ -286,30 +305,24 @@ puzzle_name,
 solution_file"""
     paretos = db.con.execute(sql).fetchall()
 
+    # todo, fix in sql, not code
+    paretos = [[p[3], p[0], p[2]] + list(p[9:23]) for p in paretos]
+
     if verbose and paretos:
         print('The following are pareto.  Be sure to make sure the leaderboard cache is up to date first.  ')
-        last = paretos[0][3]
+        last = paretos[0][0]  # puzzle
         for i, p in enumerate(paretos):
 
-            if last != p[3]:
+            if last != p[0]:
                 # line break between different puzzles
                 print()
-                last = p[3]
-                if i >= 100:
+                last = p[0]
+                if i >= 1000:
                     print(f'.. too many to show, {len(paretos)-i} more')
                     break
 
-            file = os.path.split(p[0])[1]
-
-            flags = ''
-            if p[19]:
-                flags += 'T'
-            if p[20]:
-                flags += 'O'
-            if p[21]:
-                flags += 'L'
-            # todo, make prettier
-            print(f'{i+1} {file:20}   {p[3]}   "{p[2]}"   {p[9]}g/{p[10]}c/{p[11]}a/{p[12]}i/{p[13]}h/{p[14]}w  {p[15]}r/{p[16]}A∞/{p[17]}H∞/{p[18]}W∞  {flags}')
+            fstr = f'{i+1} {record_string(p)}'
+            print(fstr)
         #  0                    1                      2                   3       4      5     6       7     8     9      10      11    12    13      14     15    16       17        18        19     20       21    22
         # file,                 last_check,           solution,            puzzle, valid, cost, cycles, area, inst, cost,  cycles, area, inst, height, width, rate, areainf, heighinf, widthinf, track, overlap, loop, uptodate
         # ('filename.solution', '2023-05-03 05:50:14', 'NEW SOLUTION F1', 'P090',  1,     245,  461,    83,   140,  '245', '461',  '83', 140,  7,      12.0,  77.0, 83,      7,        12.0,     0,     0,       1,    1)
@@ -319,22 +332,114 @@ solution_file"""
 
 
 def check_cache(paretos, force=False):
-    bads = set(p[3] for p in paretos if p[-1] == 0 or force)
+    bads = set(p[0] for p in paretos if p[-1] == 0 or force)
     return bads
+
+
+def score_part(solution, m_part: str):
+    m_part = m_part.lower()
+    #        0             1          2          3      4        5      6              7        8       9      10        11          12         13          14        15
+    # SELECT puzzle_name, 'db/file', 'solution', mcost, mcycles, marea, mInstructions, mheight, mwidth, mrate, mareainf, mheightinf, mwidthinf, mTrackless, moverlap, mloop from community
+    if m_part == 'g':
+        return solution[3]
+    if m_part == 'c':
+        return solution[4]
+    if m_part == 'a':  # technically, I need to figure if I should use ainf on r
+        return solution[5]
+    if m_part == 'i':
+        return solution[6]
+    if m_part == 'h':
+        return solution[7]
+    if m_part == 'w':
+        return solution[8]
+    if m_part == 'r':
+        if solution[9] == 'Inf':
+            return math.inf
+        return solution[9]
+    if m_part == 'ainf':
+        if solution[10] == 'Inf':
+            return math.inf
+        return solution[10]
+    if m_part == 't':
+        return -solution[13]
+    if m_part == 'ti':
+        return (score_part(solution, 't'), score_part(solution, 'i'))
+    if m_part == 'o':
+        return -solution[14]
+    if m_part == '!o':
+        return solution[14]
+
+    print('Unrecognized metric:', m_part)
+    return 0
+
+
+def score_whole(solution, metric):
+    ss = []
+
+    if metric['metrics'][0] != "O":
+        # don't like overlap unless in overlap
+        ss.append(score_part(solution, '!O'))
+
+    for m in metric['metrics']:
+        if '+' in m:
+            s = 0
+            for mm in m.split('+'):
+                s += score_part(solution, mm)
+        elif '·' in m:
+            s = 1
+            for mm in m.split('·'):
+                s *= score_part(solution, mm)
+        else:
+            s = score_part(solution, m)
+        ss.append(s)
+
+    # I don't know what the default tie breaker metrics so just existing solutions
+    ss.append(solution[1] != 'db')
+
+    return tuple(ss)
+
+
+def get_records(verbose=False):
+    puzzles = set([p[0] for p in paretos])
+    recs = dict()
+    for puzzle in puzzles:
+        sql = """SELECT puzzle_name, 'db', 'solution', mcost, mcycles, marea, mInstructions, mheight, mwidth, mrate, mareainf, mheightinf, mwidthinf, mTrackless, moverlap, mloop from community
+        WHERE puzzle_name = ?"""
+        existing = db.con.execute(sql, [puzzle]).fetchall()
+        potential = [tuple(p) for p in paretos if p[0] == puzzle]
+        both = existing + potential
+
+        for metric in zlbb.categories:
+            if zlbb.puzzles[puzzle]['type'] not in metric['puzzleTypes']:
+                continue
+
+            best = sorted((score_whole(sol, metric), sol, sol[1]) for sol in both)[0]
+            if best[-1] != 'db':
+                recs.setdefault(best[1], []).append(metric['id'])
+
+    srecs = sorted((rec, sorted(cats)) for rec, cats in recs.items())
+
+    if verbose:
+        for s in srecs:
+            print(', '.join(s[1]), ':', record_string(s[0]))
+
+    return srecs
 
 
 if __name__ == '__main__':
     tracked_puzzles = [f for f in os.listdir('puzzle') if f.endswith('.puzzle')]
     print(len(tracked_puzzles), 'tracked puzzles')
+    # todo: compare against website list and report any diff
 
     local_stats = scan_local()
     while True:
         paretos = get_paretos()
         bad_cache = check_cache(paretos)
         bad_cache2 = check_cache(paretos, True)
+        records = get_records()
 
         print('---------- Menu ----------')
-        print(f'1. Rescan solutions ({len(local_stats["local"])} files found, {len(local_stats["db"])} tracked)')
+        print(f'1. Rescan solutions ({len(local_stats["local"])} files found, {len(local_stats["db"])} tracked)')  # TODO: remove this
 
         proc = ', '.join([f'{len(local_stats[cat])} {cat}' for cat in ['new', 'update', 'delete', 'oversized'] if len(local_stats[cat]) > 0])
         if proc == '':
@@ -352,9 +457,11 @@ if __name__ == '__main__':
         print(f'8. Pareto ({len(paretos)})')
         # todo, make a mode that prioritizes solutions that kill existing paretos.  kind of hard with multiple manifolds though
 
-        print('9. Process -> update cache -> report paretos')
+        print(f'9. Just records ({len(records)})')
 
-        print('0. Exit')
+        # print('0. Process -> update cache -> report paretos')
+
+        print('x. Exit')
         # todo, add overlap hermit mode warning
 
         m = input()
@@ -381,16 +488,17 @@ if __name__ == '__main__':
                 zlbb.update_community(bc)
         elif m == '8':
             get_paretos(True)
-        # todo: new action, it won't be easy, but something that finds any record holder
+        elif m == '9':
+            get_records(True)
 
-        elif m == '9':  # rerun all new, check the leaderboard, report
+        elif m == '0':  # rerun all new, check the leaderboard, report
             process_solutions()
             for bc in check_cache(get_paretos()):
                 zlbb.update_community(bc)
             get_paretos(True)
             local_stats = scan_local()
 
-        elif m == '0' or m == '':
+        elif m.lower() == 'x' or m == '':
             break
 
         elif m == 'updateall':

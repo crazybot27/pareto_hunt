@@ -3,6 +3,8 @@
 import math
 from ctypes import cdll, c_void_p, c_char_p
 
+import zlbb
+
 # load panic's tool
 lv = cdll.LoadLibrary('./libverify.dll')
 lv.verifier_create.restype = c_void_p
@@ -13,17 +15,6 @@ lv.verifier_error.restype = c_char_p
 # todo: move to settings
 MAX_AREA = 100000
 
-# todo, being extra lazy here. need to identify production puzzles better
-productions = set([
-    "P076",    "P080",    "P075",    "P074",    "P083",    "P078",    "P079",    "P081",    "P082",
-    "P077",    "P084",    "P091b",    "P090",    "P092",    "P093",    "P094",    "P105",    "P109",
-    "w1698786588", "week5",
-    "w2501728107",
-    "w2450512232", "OM2021_W4",
-    "w2788067624", "OM2022_AetherReactor",
-    "w2946684660", "OM2023_W5_ProbeModule",
-])
-
 
 def get_metric(v, name: bytes):
     r = lv.verifier_evaluate_metric(c_void_p(v), c_char_p(name))
@@ -32,10 +23,41 @@ def get_metric(v, name: bytes):
     return r
 
 
+def is_legal(v, sol):
+    """overlap
+    + max(0, parts of type baron - 1)
+    + max(0, "parts of type glyph-disposal" - 1)
+    + duplicate reagents
+    + duplicate products
+    + max(0, "maximum track gap^2" - 1)"""
+
+    wheel = get_metric(v, b'parts of type baron')
+    disposal = get_metric(v, b'parts of type glyph-disposal')
+    reagents = not get_metric(v, b'duplicate reagents')
+    products = not get_metric(v, b'duplicate products')
+    track = get_metric(v, b'maximum track gap^2')
+    overlap = get_metric(v, b'overlap')  # banned in production only for now
+
+    err = lv.verifier_error(c_void_p(v))
+    if err:
+        # something went wrong, solution probably doesn't work
+        return False
+    return (wheel <= 1 and
+            disposal <= 1 and
+            reagents and
+            products and
+            track <= 1 and
+            (overlap == 0 or zlbb.puzzles[sol.puzzle_name]['type'] != 'PRODUCTION')
+            )
+
+
 def get_metrics(sol):
     puzzle_file = ('puzzle/'+sol.puzzle_name+'.puzzle').encode('utf-8')
     solution_file = sol.full_path.encode('utf-8')
     v = lv.verifier_create(c_char_p(puzzle_file), c_char_p(solution_file))
+
+    if not is_legal(v, sol):
+        return False
 
     metrics = {
         'mpCost': get_metric(v, b'parsed cost'),
@@ -83,7 +105,7 @@ def get_metrics(sol):
             'mcLoop': 1,
         }
 
-    if sol.puzzle_name in productions:
+    if zlbb.puzzles[sol.puzzle_name]['type'] == 'PRODUCTION':
         metrics['mcHeight'] = None
         metrics['mcWidth'] = None
         metrics['mcHeightInf'] = None
