@@ -1,5 +1,6 @@
 import math
 import os
+import platform
 
 from solution import Solution
 import db
@@ -10,8 +11,15 @@ import zlbb
 root_folders = []
 
 # if on windows, auto find my documents and save folder
-if os.name == 'nt':
+p = ''
+if platform.system() == 'Windows':
     p = os.path.expanduser(r"~\Documents\My Games\Opus Magnum")
+if platform.system() == 'Darwin':
+    p = os.path.expanduser(r"~/Library/Application Support/Opus Magnum")
+if platform.system() == 'Linux':
+    p = os.path.expanduser(r"~/.local/share/Opus Magnum")
+
+if p != '':
     for folder in os.listdir(p):
         full = os.path.join(p, folder)
         if folder.isnumeric() and os.path.isdir(full):

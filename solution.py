@@ -95,8 +95,9 @@ class Solution():
 
     def __read_string(self):
         # todo, this has a problem with unicode characters more than 1 byte wide
+        # maybe latin1 fixed it?  idk, I hate strings
         length = self.__read_byte()
-        out = self.data[self.c: self.c + length].decode('utf-8')
+        out = self.data[self.c: self.c + length].decode('latin1')
         self.c += length
         return out
 

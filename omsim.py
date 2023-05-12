@@ -1,12 +1,30 @@
 # https://github.com/ianh/omsim  #thank you panic!
 
 import math
-from ctypes import cdll, c_void_p, c_char_p
+import os
+import platform
+import sys
+from ctypes import cdll, c_void_p, c_char_p, c_int
 
 import zlbb
 
 # load panic's tool
-lv = cdll.LoadLibrary('./libverify.dll')
+
+if platform.system() == 'Windows':
+    lv = cdll.LoadLibrary('./libverify.dll')
+elif platform.system() == 'Darwin':
+    lv = cdll.LoadLibrary('./libverifymac.so')
+elif platform.system() == 'Linux':
+    if os.path.isfile('./libverify.so'):
+        lv = cdll.LoadLibrary('./libverify.so')
+    else:
+        print("Hey, thanks for trying to use my script, but you'll have to build panic's omsim yourself.  It should be an easy makefile to follow.  Just drop libverify.so in this folder after")
+        print(r"https://github.com/ianh/omsim")
+        sys.exit()
+else:
+    print("Huh, you're on a weird os I don't know or I broke something.  Hopefully you know how to fix this better than I do.")
+    print("Find this comment in the code and fix it please.")
+    sys.exit()
 lv.verifier_create.restype = c_void_p
 lv.verifier_error.restype = c_char_p
 
@@ -14,6 +32,10 @@ lv.verifier_error.restype = c_char_p
 # if you want to skip big area puzzles, modify this
 # todo: move to settings
 MAX_AREA = 100000
+MAX_CYCLES = 100000
+# current "worst" scores on the leaderboard for comparison are
+# area:    73k   Mist of Dousing   GR
+# cycles:  22k   Alchemical Slag   A
 
 
 def get_metric(v, name: bytes):
@@ -52,11 +74,13 @@ def is_legal(v, sol):
 
 
 def get_metrics(sol):
-    puzzle_file = ('puzzle/'+sol.puzzle_name+'.puzzle').encode('utf-8')
-    solution_file = sol.full_path.encode('utf-8')
+    puzzle_file = ('puzzle/'+sol.puzzle_name+'.puzzle').encode('latin1')
+    solution_file = sol.full_path.encode('latin1')
     v = lv.verifier_create(c_char_p(puzzle_file), c_char_p(solution_file))
+    lv.verifier_set_cycle_limit(c_void_p(v), c_int(MAX_CYCLES))
 
     if not is_legal(v, sol):
+        lv.verifier_destroy(c_void_p(v))
         return False
 
     metrics = {
@@ -81,6 +105,7 @@ def get_metrics(sol):
     if err:
         # something went wrong, solution probably doesn't work
         print('error before victory', err)
+        lv.verifier_destroy(c_void_p(v))
         return False
 
     to = get_metric(v, b'throughput outputs')
@@ -116,4 +141,5 @@ def get_metrics(sol):
         # should just be a no throughput error
         print('error after victory', err)
 
+    lv.verifier_destroy(c_void_p(v))
     return metrics
