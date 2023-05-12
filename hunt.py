@@ -376,7 +376,7 @@ def score_part(solution, m_part: str):
     if m_part == 'ti':
         return (score_part(solution, 't'), score_part(solution, 'i'))
     if m_part == 'o':
-        return -solution[14]
+        return 0  # -solution[14]
     if m_part == '!o':
         return solution[14]
 
