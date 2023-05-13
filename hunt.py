@@ -476,7 +476,6 @@ if __name__ == '__main__':
         # todo, add overlap hermit mode warning
 
         m = input()
-        # m = '6'
         if m == '1':
             local_stats = scan_local()
         elif m == '2':
