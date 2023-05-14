@@ -1,7 +1,16 @@
 import os
 
 remap = {}
-
+# tournament 2020
+remap["week1"] = "w1611998067"
+remap["week2"] = "w1698784331"
+remap["week3"] = "w1698785633"
+remap["week4"] = "w1698785238"
+remap["week5"] = "w1698786588"
+remap["week7"] = "w1698787731"
+remap["week8"] = "w1698788220"
+remap["weekEX"] = "w1698789743"
+# tournament 2021
 remap["OM2021_W0"] = "w2450560971"
 remap["OM2021_W1"] = "w2450508212"
 remap["OM2021_W2"] = "w2450511665"
@@ -10,7 +19,7 @@ remap["OM2021_W4"] = "w2450512232"
 remap["OM2021_W5"] = "w2450512434"
 remap["OM2021_W7"] = "w2450512626"
 remap["OM2021_W8"] = "w2450512809"
-
+# tournament 2022
 remap["OM2022_FlakeSalt"] = "w2788066123"
 remap["OM2022_LeaveNoTrace"] = "w2788066279"
 remap["OM2022_RustRemoval"] = "w2788066771"
@@ -21,7 +30,7 @@ remap["OM2022_AetherReactor"] = "w2788067624"
 remap["OM2022_Fulmination"] = "w2788067677"
 remap["OM2022_PotentPainkillers"] = "w2788067760"
 remap["OM2022_RadioReceivers"] = "w2788067896"
-
+# tournament 2023
 remap["OM2023_W0_EndGame"] = "w2946682691"
 remap["OM2023_W1_SelfPressurizingGas"] = "w2946682999"
 remap["OM2023_W2_WasteReclamation"] = "w2946683186"
@@ -31,7 +40,7 @@ remap["OM2023_W5_ProbeModule"] = "w2946684660"
 remap["OM2023_WO_CoolEarrings"] = "w2946693353"
 remap["OM2023_W6_BicrystalTransceiver"] = "w2946687073"
 remap["OM2023_W7_WarpFuel"] = "w2946687209"
-
+# best of weeklies 1
 remap["OM2021Demo_HornSilver"] = "w2513871683"
 remap["OM2021Demo_GreenVitriol"] = "w2539581468"
 remap["OM2021Demo_FerrousWheel"] = "w2565611826"
