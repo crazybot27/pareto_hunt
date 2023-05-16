@@ -1,7 +1,7 @@
 import os
 
 remap = {}
-# tournament 2020
+# tournament 2019
 remap["week1"] = "w1611998067"
 remap["week2"] = "w1698784331"
 remap["week3"] = "w1698785633"
@@ -10,6 +10,14 @@ remap["week5"] = "w1698786588"
 remap["week7"] = "w1698787731"
 remap["week8"] = "w1698788220"
 remap["weekEX"] = "w1698789743"
+# tournament 2020
+remap["OM2020_W1_PotentPotables"] = "w2501727721"
+remap["OM2020_W2_AmalgamatedGoldRing"] = "w2501727808"
+remap["OM2020_W3_SwampFiber"] = "w2501727889"
+remap["OM2020_W4_VolatilityAndTranquility"] = "w2501727977"
+remap["OM2020_W5_Overloaded"] = "w2501728107"
+remap["OM2020_W6_ActivePolymerase"] = "w2501728219"
+remap["OM2020_W7_HighGlossFinish"] = "w2501728349"
 # tournament 2021
 remap["OM2021_W0"] = "w2450560971"
 remap["OM2021_W1"] = "w2450508212"

@@ -95,6 +95,17 @@ def get_categories():
     raw = urllib.request.urlopen(url).read().decode('utf-8')
     jj = json.loads(raw)
 
+    for j in jj:
+        if j['metrics'].count('r'):
+            for i, m in enumerate(j['metrics']):
+                if m == 'a':
+                    j['metrics'][i] = 'ainf'
+                if m == 'h':
+                    j['metrics'][i] = 'hinf'
+                if m == 'w':
+                    j['metrics'][i] = 'winf'
+            # print(j)
+
     return jj
 
 

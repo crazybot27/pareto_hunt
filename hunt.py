@@ -371,6 +371,14 @@ def score_part(solution, m_part: str):
         if solution[10] == 'Inf':
             return math.inf
         return solution[10]
+    if m_part == 'hinf':
+        if solution[11] == 'Inf':
+            return math.inf
+        return solution[11]
+    if m_part == 'winf':
+        if solution[12] == 'Inf':
+            return math.inf
+        return solution[12]
     if m_part == 't':
         return -solution[13]
     if m_part == 'ti':
@@ -432,7 +440,9 @@ def get_records(verbose=False):
 
     if verbose:
         for s in srecs:
-            print(', '.join(s[1]), ':', record_string(s[0]))
+            cats = ', '.join(s[1])
+            fstr = record_string(s[0])
+            print(f'{cats:20} : {fstr}')
 
     return srecs
 
