@@ -212,8 +212,8 @@ def record_string(record):
         flags += 'L'
 
     r = record  # lazy copy/paste
-    fstr = f'{puzzle_name:18} {file:20} "{r[2]}"  {r[3]}g/{r[4]}c/{r[5]}a/{r[6]}i/{r[7]}h/{r[8]}w  {r[9]}r/{r[10]}A∞/{r[11]}H∞/{r[12]}W∞  {flags}'
-    fstr2 = f'{puzzle_name:18}|{file:20}|{r[2]}|{r[3]}|{r[4]}|{r[5]}|{r[6]}|{r[7]}|{r[8]}|{r[9]}|{r[10]}|{r[11]}|{r[12]}|{flags}'
+    fstr = f'{puzzle_name:25} {file:20} "{r[2]}"  {r[3]}g/{r[4]}c/{r[5]}a/{r[6]}i/{r[7]}h/{r[8]}w  {r[9]}r/{r[10]}A∞/{r[11]}H∞/{r[12]}W∞  {flags}'
+    fstr2 = f'{puzzle_name:25}|{file:20}|{r[2]}|{r[3]}|{r[4]}|{r[5]}|{r[6]}|{r[7]}|{r[8]}|{r[9]}|{r[10]}|{r[11]}|{r[12]}|{flags}'
     # print(r)
     return fstr
 
@@ -347,7 +347,7 @@ def check_cache(paretos, force=False):
     return bads
 
 
-def score_part(solution, m_part: str):
+def score_part(solution, m_part: str, finite: bool):
     m_part = m_part.lower()
     #        0             1          2          3      4        5      6              7        8       9      10        11          12         13          14        15
     # SELECT puzzle_name, 'db/file', 'solution', mcost, mcycles, marea, mInstructions, mheight, mwidth, mrate, mareainf, mheightinf, mwidthinf, mTrackless, moverlap, mloop from community
@@ -355,34 +355,37 @@ def score_part(solution, m_part: str):
         return solution[3]
     if m_part == 'c':
         return solution[4]
-    if m_part == 'a':  # technically, I need to figure if I should use ainf on r
-        return solution[5]
+    if m_part == 'a':
+        if finite:
+            return solution[5]
+        else:
+            if solution[10] == 'Inf':
+                return math.inf
+            return solution[10]
     if m_part == 'i':
         return solution[6]
     if m_part == 'h':
-        return solution[7]
+        if finite:
+            return solution[7]
+        else:
+            if solution[11] == 'Inf':
+                return math.inf
+            return solution[11]
     if m_part == 'w':
-        return solution[8]
+        if finite:
+            return solution[8]
+        else:
+            if solution[12] == 'Inf':
+                return math.inf
+            return solution[12]
     if m_part == 'r':
         if solution[9] == 'Inf':
             return math.inf
         return solution[9]
-    if m_part == 'ainf':
-        if solution[10] == 'Inf':
-            return math.inf
-        return solution[10]
-    if m_part == 'hinf':
-        if solution[11] == 'Inf':
-            return math.inf
-        return solution[11]
-    if m_part == 'winf':
-        if solution[12] == 'Inf':
-            return math.inf
-        return solution[12]
     if m_part == 't':
         return -solution[13]
     if m_part == 'ti':
-        return (score_part(solution, 't'), score_part(solution, 'i'))
+        return (score_part(solution, 't', finite), score_part(solution, 'i', finite))
     if m_part == 'o':
         return 0  # -solution[14]
     if m_part == '!o':
@@ -393,23 +396,24 @@ def score_part(solution, m_part: str):
 
 
 def score_whole(solution, metric):
+    finite = metric["manifold"]["id"] == "VICTORY"
     ss = []
 
     if metric['metrics'][0] != "O":
         # don't like overlap unless in overlap
-        ss.append(score_part(solution, '!O'))
+        ss.append(score_part(solution, '!O', finite))
 
     for m in metric['metrics']:
         if '+' in m:
             s = 0
             for mm in m.split('+'):
-                s += score_part(solution, mm)
+                s += score_part(solution, mm, finite)
         elif '·' in m:
             s = 1
             for mm in m.split('·'):
-                s *= score_part(solution, mm)
+                s *= score_part(solution, mm, finite)
         else:
-            s = score_part(solution, m)
+            s = score_part(solution, m, finite)
         ss.append(s)
 
     # I don't know what the default tie breaker metrics so just existing solutions
