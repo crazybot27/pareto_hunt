@@ -223,7 +223,9 @@ def get_paretos(verbose=False):
     # so, i'm going to be "lazy" and just count out the index of what I need in the touple.
     # sue me
 
-    sqlVic = """SELECT a.*, IFNULL(a.last_check < community_cache.last_check, 0) as upToDate FROM local a
+    fields = "a.puzzle_name, a.solution_file, a.solution_name, a.mcCost, a.mcCycles, a.mcArea, a.mcInstructions, a.mcHeight, a.mcWidth, a.mcRate, a.mcAreaInf, a.mcHeightInf, a.mcWidthInf, a.mcTrackless, a.mcOverlap, a.mcLoop"
+
+    sqlVic = f"""SELECT {fields}, IFNULL(a.last_check < community_cache.last_check, 0) as upToDate FROM local a
 LEFT JOIN community_cache ON a.puzzle_name = community_cache.puzzle_name
 WHERE a.valid
 -- there can't be a solution in community better than this one
@@ -268,7 +270,7 @@ AND NOT EXISTS (
 	)
 )"""
 
-    sqlInf = """SELECT a.*, IFNULL(a.last_check < community_cache.last_check, 0) as upToDate FROM local a
+    sqlInf = f"""SELECT {fields}, IFNULL(a.last_check < community_cache.last_check, 0) as upToDate FROM local a
 LEFT JOIN community_cache ON a.puzzle_name = community_cache.puzzle_name
 WHERE a.valid AND a.mcLoop
 -- there can't be a solution in community better than this one
@@ -312,12 +314,9 @@ AND NOT EXISTS (
 
     sql = f"""{sqlVic} UNION {sqlInf}
 ORDER BY
-puzzle_name,
-solution_file"""
+a.puzzle_name,
+a.solution_file"""
     paretos = db.con.execute(sql).fetchall()
-
-    # todo, fix in sql, not code
-    paretos = [[p[3], p[0], p[2]] + list(p[9:23]) for p in paretos]
 
     if verbose and paretos:
         print('The following are pareto.  Be sure to make sure the leaderboard cache is up to date first.  ')
@@ -349,8 +348,8 @@ def check_cache(paretos, force=False):
 
 def score_part(solution, m_part: str, finite: bool):
     m_part = m_part.lower()
-    #        0             1          2          3      4        5      6              7        8       9      10        11          12         13          14        15
-    # SELECT puzzle_name, 'db/file', 'solution', mcost, mcycles, marea, mInstructions, mheight, mwidth, mrate, mareainf, mheightinf, mwidthinf, mTrackless, moverlap, mloop from community
+    #        0             1          2               3      4        5      6              7        8       9      10        11          12         13          14        15
+    # SELECT puzzle_name, 'db/file', 'solution_name', mCost, mCycles, mArea, mInstructions, mHeight, mWidth, mRate, mAreaInf, mHeightInf, mWidthInf, mTrackless, mOverlap, mLoop from community
     if m_part == 'g':
         return solution[3]
     if m_part == 'c':
@@ -426,7 +425,7 @@ def get_records(verbose=False):
     puzzles = set([p[0] for p in paretos])
     recs = dict()
     for puzzle in puzzles:
-        sql = """SELECT puzzle_name, 'db', 'solution', mcost, mcycles, marea, mInstructions, mheight, mwidth, mrate, mareainf, mheightinf, mwidthinf, mTrackless, moverlap, mloop from community
+        sql = """SELECT puzzle_name, 'db', 'solution_name', mCost, mCycles, mArea, mInstructions, mHeight, mWidth, mRate, mAreaInf, mHeightInf, mWidthInf, mTrackless, mOverlap, mLoop from community
         WHERE puzzle_name = ?"""
         existing = db.con.execute(sql, [puzzle]).fetchall()
         potential = [tuple(p) for p in paretos if p[0] == puzzle]
