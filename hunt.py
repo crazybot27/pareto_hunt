@@ -416,6 +416,7 @@ def score_whole(solution, metric):
         ss.append(s)
 
     # I don't know what the default tie breaker metrics so just existing solutions
+    # todo: add a parameter to allow reporting those that tie existing records
     ss.append(solution[1] != 'db')
 
     return tuple(ss)
@@ -439,7 +440,7 @@ def get_records(verbose=False):
             if best[-1] != 'db':
                 recs.setdefault(best[1], []).append(metric['displayName'])
 
-    srecs = sorted((rec, sorted(cats)) for rec, cats in recs.items())
+    srecs = sorted([(rec, sorted(cats)) for rec, cats in recs.items()], key=lambda x: (x[0][0], x[1], x))
 
     if verbose:
         for s in srecs:

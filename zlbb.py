@@ -6,7 +6,7 @@ import db
 
 
 def check_infinity(score, cat):
-    if score[cat] == "Infinity" or score[cat] == None:
+    if score[cat] == "Infinity" or score[cat] is None:
         score[cat] = math.inf
 
 
@@ -40,7 +40,7 @@ def update_community(pn):
 
     data = []
     for j in jj:
-        if j['solution'] == None:
+        if j['solution'] is None:
             j['solution'] = j['gif']
         score = j['score']
 

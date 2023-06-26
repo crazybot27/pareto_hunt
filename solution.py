@@ -119,6 +119,6 @@ class Solution():
         return out
 
     def __str__(self):
-        return f'{self.puzzle_name} {self.file_name[:-9]:4} {self.solution_name:30} {self.score_string}'
+        return f'{self.puzzle_name} {self.file_name[:-9]:4} {self.solution_name:30} {self.score_string} parsed'
         # todo, change this
         # return ' '.join(map(str, parts))
