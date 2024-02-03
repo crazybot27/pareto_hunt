@@ -11,16 +11,11 @@ import zlbb
 # load panic's tool
 
 if platform.system() == 'Windows':
-    lv = cdll.LoadLibrary('./libverify.dll')
+    lv = cdll.LoadLibrary('lib/libverify.dll')
 elif platform.system() == 'Darwin':
-    lv = cdll.LoadLibrary('./libverifymac.so')
+    lv = cdll.LoadLibrary('lib/libverifymac.so')
 elif platform.system() == 'Linux':
-    if os.path.isfile('./libverify.so'):
-        lv = cdll.LoadLibrary('./libverify.so')
-    else:
-        print("Hey, thanks for trying to use my script, but you'll have to build panic's omsim yourself.  It should be an easy makefile to follow.  Just drop libverify.so in this folder after")
-        print(r"https://github.com/ianh/omsim")
-        sys.exit()
+    lv = cdll.LoadLibrary('lib/libverify.so')
 else:
     print("Huh, you're on a weird os I don't know or I broke something.  Hopefully you know how to fix this better than I do.")
     print("Find this comment in the code and fix it please.")
