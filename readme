@@ -1,3 +1,7 @@
+Note: The leaderboard has been updated for area@infinity.  This script has not been updated to handle that yet.  I hope to soon™, but until then, it's not working. 
+
+
+
 This tool checks all your Opus Magnum solutions, compares them again the leaderboard, and reports which are pareto and should be submitted.
 If you're on Windows, it will automatically find your save folder.  Otherwise, you'll need to add it manually in hunt.py::root_folders
 
