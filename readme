@@ -1,7 +1,3 @@
-Note: The leaderboard has been updated for area@infinity.  This script has not been updated to handle that yet.  I hope to soon™, but until then, it's not working. 
-
-
-
 This tool checks all your Opus Magnum solutions, compares them again the leaderboard, and reports which are pareto and should be submitted.
 If you're on Windows, it will automatically find your save folder.  Otherwise, you'll need to add it manually in hunt.py::root_folders
 
@@ -27,3 +23,9 @@ To use run hunt.py and enter the number on the menu to do the action
     Reports all your solutions which would be pareto if submitted to the global leaderboard.  Be sure to run #6 first
 9. Just records
     Reports all your pareto solutions which would win a tracked category.  Ties beyond the hard defined metrics default to the existing solutions.
+
+
+Thanks to:
+panic for making omsim https://github.com/ianh/omsim, and providing the library for mac
+ieee12345 for providing the library for linux
+dinolord919 for helping me update to handle area@infinity
