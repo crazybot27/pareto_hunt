@@ -288,10 +288,7 @@ AND NOT EXISTS (
 	-- everything is better than or equal
 	WHERE a.puzzle_name = b.puzzle_name
 	AND b.mCost <= a.mcCost
-	AND ( b.mAreaInfLevel < a.mcAreaInfLevel 
-    OR ( b.mAreaInfLevel = a.mcAreaInfLevel 
-    AND b.mAreaInfValue <= a.mcAreaInfValue 
-    ) )
+	AND IFNULL((b.mAreaInfLevel, b.mAreaInfValue) <= (a.mcAreaInfLevel, a.mcAreaInfValue), 1)
 	AND b.mInstructions <= a.mcInstructions
 	AND IFNULL(b.mHeightInf <= a.mcHeightInf, 1)
 	AND IFNULL(b.mWidthInf <= a.mcWidthInf, 1)
@@ -305,10 +302,7 @@ AND NOT EXISTS (
 	-- everything is better than or equal
 	WHERE a.puzzle_name = c.puzzle_name
 	AND c.mcCost <= a.mcCost
-	AND ( c.mcAreaInfLevel < a.mcAreaInfLevel 
-    OR ( c.mcAreaInfLevel = a.mcAreaInfLevel 
-    AND c.mcAreaInfValue <= a.mcAreaInfValue 
-    ) )
+	AND IFNULL((c.mcAreaInfLevel, c.mcAreaInfValue) <= (a.mcAreaInfLevel, a.mcAreaInfValue), 1)
 	AND c.mcInstructions <= a.mcInstructions
 	AND IFNULL(c.mcHeightInf <= a.mcHeightInf, 1)
 	AND IFNULL(c.mcWidthInf <= a.mcWidthInf, 1)
@@ -317,10 +311,7 @@ AND NOT EXISTS (
 	AND c.mcOverlap <= a.mcOverlap
 	-- and at least 1 needs to be better
 	AND ( c.mcCost < a.mcCost
-	OR c.mcAreaInfLevel < a.mcAreaInfLevel
-    OR ( c.mcAreaInfLevel = a.mcAreaInfLevel 
-    AND c.mcAreaInfValue <= a.mcAreaInfValue 
-    )
+	OR IFNULL((c.mcAreaInfLevel, c.mcAreaInfValue) < (a.mcAreaInfLevel, a.mcAreaInfValue), 0)
 	OR c.mcInstructions < a.mcInstructions
 	OR IFNULL(c.mcHeightInf < a.mcHeightInf, 0)
 	OR IFNULL(c.mcWidthInf < a.mcWidthInf, 0)
