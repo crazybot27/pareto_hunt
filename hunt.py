@@ -16,7 +16,6 @@ root_folders = []
 pp = []
 if platform.system() == 'Windows':
     pp.append(os.path.expanduser(r"~\Documents\My Games\Opus Magnum"))
-    pp.append(os.path.expanduser(r"~\Documents\My Games\Opus Magasdfnum"))
 elif platform.system() == 'Darwin':
     pp.append(os.path.expanduser(r"~/Library/Application Support/Opus Magnum"))
 elif platform.system() == 'Linux':
