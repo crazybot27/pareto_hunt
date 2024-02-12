@@ -112,20 +112,20 @@ def process_solutions():
                     mpCost, mpCycles, mpArea, mpInstructions,
                     mcCost, mcCycles, mcArea, mcInstructions,
                     mcHeight, mcWidth, mcRate, 
-                    mcAreaInf, mcHeightInf, mcWidthInf,
+                    mcAreaInfLevel, mcAreaInfValue, mcHeightInf, mcWidthInf,
                     mcTrackless, mcOverlap, mcLoop)
                     VALUES (?,CURRENT_TIMESTAMP,?,?,?,
                     ?,?,?,?,
                     ?,?,?,?,
                     ?,?,?,
-                    ?,?,?,
+                    ?,?,?,?,
                     ?,?,?
                     )"""
             data += [
                 metrics['mpCost'], metrics['mpCycles'], metrics['mpArea'], metrics['mpInstructions'],
                 metrics['mcCost'], metrics['mcCycles'], metrics['mcArea'], metrics['mcInstructions'],
                 metrics['mcHeight'], metrics['mcWidth'], metrics['mcRate'],
-                metrics['mcAreaInf'], metrics['mcHeightInf'], metrics['mcWidthInf'],
+                metrics['mcAreaInfLevel'], metrics['mcAreaInfValue'], metrics['mcHeightInf'], metrics['mcWidthInf'],
                 metrics['mcTrackless'], metrics['mcOverlap'], metrics['mcLoop'],
             ]
             # print(metrics)
@@ -164,7 +164,7 @@ def mismatch(verbose=False):
 def duplicate_scores(verbose=False):
     sql = """SELECT puzzle_name, count(*) as c, group_concat(solution_file,","), group_concat(solution_name,","), * FROM local
 WHERE valid
-GROUP BY puzzle_name, mcCost, mcCycles, mcArea, mcInstructions, mcHeight, mcWidth, mcRate, mcAreaInf, mcHeightInf, mcWidthInf, mcTrackless, mcOverlap
+GROUP BY puzzle_name, mcCost, mcCycles, mcArea, mcInstructions, mcHeight, mcWidth, mcRate, mcAreaInfLevel, mcAreaInfValue, mcHeightInf, mcWidthInf, mcTrackless, mcOverlap
 HAVING c>1
 ORDER BY puzzle_name, solution_name"""
     bads = db.con.execute(sql).fetchall()
@@ -206,16 +206,23 @@ def record_string(record):
     file = os.path.basename(record[1])
 
     flags = ''
-    if record[13]:
-        flags += 'T'
     if record[14]:
-        flags += 'O'
+        flags += 'T'
     if record[15]:
+        flags += 'O'
+    if record[16]:
         flags += 'L'
 
+    if record[10] == 0:
+        aLev = '∞'
+    if record[10] == 1:
+        aLev = '\''
+    if record[10] == 2:
+        aLev = '\'\''
+
     r = record  # lazy copy/paste
-    fstr = f'{puzzle_name:25} {file:20} "{r[2]}"  {r[3]}g/{r[4]}c/{r[5]}a/{r[6]}i/{r[7]}h/{r[8]}w  {r[9]}r/{r[10]}A∞/{r[11]}H∞/{r[12]}W∞  {flags}'
-    fstr2 = f'{puzzle_name:25}|{file:20}|{r[2]}|{r[3]}|{r[4]}|{r[5]}|{r[6]}|{r[7]}|{r[8]}|{r[9]}|{r[10]}|{r[11]}|{r[12]}|{flags}'
+    fstr = f'{puzzle_name:25} {file:20} "{r[2]}"  {r[3]}g/{r[4]}c/{r[5]}a/{r[6]}i/{r[7]}h/{r[8]}w  {r[9]}r/{r[11]}A{aLev}/{r[12]}H∞/{r[13]}W∞  {flags}'
+    # fstr2 = f'{puzzle_name:25}|{file:20}|{r[2]}|{r[3]}|{r[4]}|{r[5]}|{r[6]}|{r[7]}|{r[8]}|{r[9]}|{r[10]}|{r[12]}|{r[13]}|{flags}'
     # print(r)
     return fstr
 
@@ -225,7 +232,7 @@ def get_paretos(verbose=False):
     # so, i'm going to be "lazy" and just count out the index of what I need in the touple.
     # sue me
 
-    fields = "a.puzzle_name, a.solution_file, a.solution_name, a.mcCost, a.mcCycles, a.mcArea, a.mcInstructions, a.mcHeight, a.mcWidth, a.mcRate, a.mcAreaInf, a.mcHeightInf, a.mcWidthInf, a.mcTrackless, a.mcOverlap, a.mcLoop"
+    fields = "a.puzzle_name, a.solution_file, a.solution_name, a.mcCost, a.mcCycles, a.mcArea, a.mcInstructions, a.mcHeight, a.mcWidth, a.mcRate, a.mcAreaInfLevel, a.mcAreaInfValue, a.mcHeightInf, a.mcWidthInf, a.mcTrackless, a.mcOverlap, a.mcLoop"
 
     sqlVic = f"""SELECT {fields}, IFNULL(a.last_check < community_cache.last_check, 0) as upToDate FROM local a
 LEFT JOIN community_cache ON a.puzzle_name = community_cache.puzzle_name
@@ -281,7 +288,10 @@ AND NOT EXISTS (
 	-- everything is better than or equal
 	WHERE a.puzzle_name = b.puzzle_name
 	AND b.mCost <= a.mcCost
-	AND b.mAreaInf <= a.mcAreaInf
+	AND ( b.mAreaInfLevel < a.mcAreaInfLevel 
+    OR ( b.mAreaInfLevel = a.mcAreaInfLevel 
+    AND b.mAreaInfValue <= a.mcAreaInfValue 
+    ) )
 	AND b.mInstructions <= a.mcInstructions
 	AND IFNULL(b.mHeightInf <= a.mcHeightInf, 1)
 	AND IFNULL(b.mWidthInf <= a.mcWidthInf, 1)
@@ -295,7 +305,10 @@ AND NOT EXISTS (
 	-- everything is better than or equal
 	WHERE a.puzzle_name = c.puzzle_name
 	AND c.mcCost <= a.mcCost
-	AND c.mcAreaInf <= a.mcAreaInf
+	AND ( c.mcAreaInfLevel < a.mcAreaInfLevel 
+    OR ( c.mcAreaInfLevel = a.mcAreaInfLevel 
+    AND c.mcAreaInfValue <= a.mcAreaInfValue 
+    ) )
 	AND c.mcInstructions <= a.mcInstructions
 	AND IFNULL(c.mcHeightInf <= a.mcHeightInf, 1)
 	AND IFNULL(c.mcWidthInf <= a.mcWidthInf, 1)
@@ -304,7 +317,10 @@ AND NOT EXISTS (
 	AND c.mcOverlap <= a.mcOverlap
 	-- and at least 1 needs to be better
 	AND ( c.mcCost < a.mcCost
-	OR c.mcAreaInf < a.mcAreaInf
+	OR c.mcAreaInfLevel < a.mcAreaInfLevel
+    OR ( c.mcAreaInfLevel = a.mcAreaInfLevel 
+    AND c.mcAreaInfValue <= a.mcAreaInfValue 
+    )
 	OR c.mcInstructions < a.mcInstructions
 	OR IFNULL(c.mcHeightInf < a.mcHeightInf, 0)
 	OR IFNULL(c.mcWidthInf < a.mcWidthInf, 0)
@@ -360,37 +376,35 @@ def score_part(solution, m_part: str, finite: bool):
         if finite:
             return solution[5]
         else:
-            if solution[10] == 'Inf':
-                return math.inf
-            return solution[10]
+            return (solution[10], solution[11])
     if m_part == 'i':
         return solution[6]
     if m_part == 'h':
         if finite:
             return solution[7]
         else:
-            if solution[11] == 'Inf':
+            if solution[12] == 'Inf':
                 return math.inf
-            return solution[11]
+            return solution[12]
     if m_part == 'w':
         if finite:
             return solution[8]
         else:
-            if solution[12] == 'Inf':
+            if solution[13] == 'Inf':
                 return math.inf
-            return solution[12]
+            return solution[13]
     if m_part == 'r':
         if solution[9] == 'Inf':
             return math.inf
         return solution[9]
     if m_part == 't':
-        return -solution[13]
+        return -solution[14]
     if m_part == 'ti':
         return (score_part(solution, 't', finite), score_part(solution, 'i', finite))
     if m_part == 'o':
         return 0  # -solution[14]
     if m_part == '!o':
-        return solution[14]
+        return solution[15]
 
     print('Unrecognized metric:', m_part)
     return 0
@@ -428,7 +442,7 @@ def get_records(verbose=False):
     puzzles = set([p[0] for p in paretos])
     recs = dict()
     for puzzle in puzzles:
-        sql = """SELECT puzzle_name, 'db', 'solution_name', mCost, mCycles, mArea, mInstructions, mHeight, mWidth, mRate, mAreaInf, mHeightInf, mWidthInf, mTrackless, mOverlap, mLoop from community
+        sql = """SELECT puzzle_name, 'db', 'solution_name', mCost, mCycles, mArea, mInstructions, mHeight, mWidth, mRate, mAreaInfLevel, mAreaInfValue, mHeightInf, mWidthInf, mTrackless, mOverlap, mLoop from community
         WHERE puzzle_name = ?"""
         existing = db.con.execute(sql, [puzzle]).fetchall()
         potential = [tuple(p) for p in paretos if p[0] == puzzle]
@@ -437,8 +451,8 @@ def get_records(verbose=False):
         for metric in zlbb.categories:
             if zlbb.puzzles[puzzle]['type'] not in metric['puzzleTypes']:
                 continue
-
             best = sorted((score_whole(sol, metric), sol, sol[1]) for sol in both)[0]
+
             if best[-1] != 'db':
                 recs.setdefault(best[1], []).append(metric['displayName'])
 

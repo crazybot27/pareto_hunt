@@ -4,7 +4,7 @@ import math
 import os
 import platform
 import sys
-from ctypes import cdll, c_void_p, c_char_p, c_int
+from ctypes import cdll, c_void_p, c_char_p, c_int, c_double
 
 import zlbb
 
@@ -22,6 +22,7 @@ else:
     sys.exit()
 lv.verifier_create.restype = c_void_p
 lv.verifier_error.restype = c_char_p
+lv.verifier_evaluate_approximate_metric.restype = c_double
 
 # I had problems in the past with it running slow on large area puzzles but it seems much better now.
 # if you want to skip big area puzzles, modify this
@@ -39,6 +40,11 @@ def get_metric(v, name: bytes):
         return math.inf
     return r
 
+def get_metric_approx(v, name: bytes):
+    r = lv.verifier_evaluate_approximate_metric(c_void_p(v), c_char_p(name))
+    if r < 0:
+        return math.inf
+    return r
 
 def is_legal(v, sol):
     """overlap
@@ -110,16 +116,29 @@ def get_metrics(sol):
         # technically, the leaderboard makes a distinction between 0 and inf, but I'm lazy
         metrics.update({
             'mcRate': math.inf,
-            'mcAreaInf': math.inf,
+            'mcAreaInfLevel': 2,
+            'mcAreaInfValue': math.inf,
             'mcHeightInf': math.inf,
             'mcWidthInf': math.inf,
             'mcLoop': 0,
         })
     else:
         # print('rate?', tc, to)
+        areaVal = get_metric_approx(v,b'per repetition^2 area')
+        if areaVal != 0.0:
+            areaLev = 2
+        else:
+            areaVal = get_metric(v,b'per repetition area')
+            if areaVal != 0:
+                areaLev = 1
+            else:
+                areaVal = get_metric(v, b'steady state area')
+                areaLev = 0
+
         metrics.update({
             'mcRate': math.ceil(tc/to*100)/100,
-            'mcAreaInf': get_metric(v, b'steady state area'),
+            'mcAreaInfLevel': areaLev,
+            'mcAreaInfValue': areaVal,
             'mcHeightInf': get_metric(v, b'steady state height'),
             'mcWidthInf': get_metric(v, b'steady state width*2')/2,
             'mcLoop': 1,
