@@ -29,12 +29,12 @@ def update_community(pn):
             (solution_file, gif_file, puzzle_name, category,
             mCost, mCycles, mArea, mInstructions,
             mHeight, mWidth, mRate,
-            mAreaInf, mHeightInf, mWidthInf,
+            mAreaInfLevel, mAreaInfValue, mHeightInf, mWidthInf,
             mTrackless, mOverlap, mLoop)
             VALUES (?,?,?,?,
             ?,?,?,?,
             ?,?,?,
-            ?,?,?,
+            ?,?,?,?,
             ?,?,?
             )"""
 
@@ -45,7 +45,6 @@ def update_community(pn):
         score = j['score']
 
         check_infinity(score, 'rate')
-        check_infinity(score, 'areaINF')
         check_infinity(score, 'heightINF')
         check_infinity(score, 'widthINF')
 
@@ -57,7 +56,7 @@ def update_community(pn):
         datum = [j['solution'], j['gif'], pn, j['smartFormattedCategories'],
                  score['cost'], score['cycles'], score['area'], score['instructions'],
                  score['height'], score['width'], score['rate'],
-                 score['areaINF'], score['heightINF'], score['widthINF'],
+                 score['areaINFLevel'], score['areaINFValue'], score['heightINF'], score['widthINF'],
                  score['trackless'], score['overlap'], score['loop']]
         data.append(datum)
     db.con.executemany(sql, data)
