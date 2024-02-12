@@ -45,6 +45,8 @@ def update_community(pn):
         score = j['score']
 
         check_infinity(score, 'rate')
+        check_infinity(score, 'areaINFLevel')
+        check_infinity(score, 'areaINFValue')
         check_infinity(score, 'heightINF')
         check_infinity(score, 'widthINF')
 

@@ -1,6 +1,13 @@
 import sqlite3
 
 con = sqlite3.connect('cache.db')
+
+# delete table from previous version
+if 'mcAreaInf' in [f[1] for f in con.execute('PRAGMA table_info("local")').fetchall()]:
+    con.execute('DROP TABLE IF EXISTS local')
+    con.execute('DROP TABLE IF EXISTS community')
+    print('found old version, deleting them')
+
 # build tables if they don't exist
 con.execute("""
 CREATE TABLE IF NOT EXISTS "local" (
