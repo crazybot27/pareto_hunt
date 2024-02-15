@@ -96,6 +96,44 @@ def get_categories():
     raw = urllib.request.urlopen(url).read().decode('utf-8')
     jj = json.loads(raw)
 
+    for metric in jj:
+        finite = metric["manifold"]["id"] == "VICTORY"
+        metric['fullmetrics'] = metric['metrics'][:]
+
+        # normal:  OG(C|R)A(L|)ITHW
+        # polymer: OG(C|R)A(L|)ITH(W|)
+        # prods:   OG(C|R)I(L|)AT
+
+        if metric['metrics'][0] != "O":
+            metric['fullmetrics'].insert(0, '!O')
+
+        metric['fullmetrics'].append('g')
+
+        if finite:
+            metric['fullmetrics'].append('c')
+        else:
+            metric['fullmetrics'].append('r')
+
+        if 'PRODUCTION' in metric['puzzleTypes']:
+            metric['fullmetrics'].append('i')
+        else:
+            metric['fullmetrics'].append('a')
+
+        metric['fullmetrics'].append('l')
+
+        if 'PRODUCTION' in metric['puzzleTypes']:
+            metric['fullmetrics'].append('a')
+        else:
+            metric['fullmetrics'].append('i')
+
+        metric['fullmetrics'].append('T')
+        metric['fullmetrics'].append('h')
+        metric['fullmetrics'].append('w')
+
+        if finite:
+            metric['fullmetrics'].append('r')
+        else:
+            metric['fullmetrics'].append('c')
     return jj
 
 

@@ -40,11 +40,13 @@ def get_metric(v, name: bytes):
         return math.inf
     return r
 
+
 def get_metric_approx(v, name: bytes):
     r = lv.verifier_evaluate_approximate_metric(c_void_p(v), c_char_p(name))
     if r < 0:
         return math.inf
     return r
+
 
 def is_legal(v, sol):
     """overlap
@@ -124,11 +126,11 @@ def get_metrics(sol):
         })
     else:
         # print('rate?', tc, to)
-        areaVal = get_metric_approx(v,b'per repetition^2 area')
+        areaVal = get_metric_approx(v, b'per repetition^2 area')
         if areaVal != 0.0:
             areaLev = 2
         else:
-            areaVal = get_metric(v,b'per repetition area')
+            areaVal = get_metric(v, b'per repetition area')
             if areaVal != 0:
                 areaLev = 1
             else:

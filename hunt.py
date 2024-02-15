@@ -3,6 +3,7 @@
 import math
 import os
 import platform
+import shutil
 
 from solution import Solution
 import db
@@ -200,6 +201,22 @@ ORDER BY puzzle_name, solution_name"""
     return len(bads)
 
 
+def short_filename(record):
+    puzzle_name = zlbb.get_puzzle_name(record[0])
+
+    flags = ''
+    if record[14]:
+        flags += 'T'
+    if record[15]:
+        flags += 'O'
+    if record[16]:
+        flags += 'L'
+
+    r = record
+    fstr = f'{puzzle_name}-{r[0]}-{r[3]}g-{r[4]}c-{r[5]}a-{r[6]}i-{r[7]}h-{r[8]}w-{r[9]}R-{r[11]}A{r[10]}-{r[12]}H-{r[13]}W-{flags}.solution'
+    return fstr
+
+
 def record_string(record):
     puzzle_name = zlbb.get_puzzle_name(record[0])
     file = os.path.basename(record[1])
@@ -327,7 +344,7 @@ a.solution_file"""
     paretos = db.con.execute(sql).fetchall()
 
     if verbose and paretos:
-        print('The following are pareto.  Be sure to make sure the leaderboard cache is up to date first.  ')
+        print('The following are pareto.  Be sure to make sure the leaderboard cache is up to date first.')
         last = paretos[0][0]  # puzzle
         for i, p in enumerate(paretos):
 
@@ -339,8 +356,16 @@ a.solution_file"""
                     print(f'.. too many to show, {len(paretos)-i} more')
                     break
 
+            if os.path.isdir('pareto'):
+                fname = os.path.join('pareto', short_filename(p))
+                if not os.path.isfile(fname):
+                    shutil.copy(p[1], fname)
+
             fstr = f'{i+1} {record_string(p)}'
             print(fstr)
+
+        if not os.path.isdir('pareto'):
+            print('If you want to get a copy of these, just make a folder named "pareto" and they\'ll be dumped there')
         #  0                    1                      2                   3       4      5     6       7     8     9      10      11    12    13      14     15    16       17        18        19     20       21    22
         # file,                 last_check,           solution,            puzzle, valid, cost, cycles, area, inst, cost,  cycles, area, inst, height, width, rate, areainf, heighinf, widthinf, track, overlap, loop, uptodate
         # ('filename.solution', '2023-05-03 05:50:14', 'NEW SOLUTION F1', 'P090',  1,     245,  461,    83,   140,  '245', '461',  '83', 140,  7,      12.0,  77.0, 83,      7,        12.0,     0,     0,       1,    1)
@@ -395,6 +420,8 @@ def score_part(solution, m_part: str, finite: bool):
         return 0  # -solution[14]
     if m_part == '!o':
         return solution[15]
+    if m_part == 'l':
+        return -solution[16]
 
     print('Unrecognized metric:', m_part)
     return 0
@@ -404,11 +431,7 @@ def score_whole(solution, metric):
     finite = metric["manifold"]["id"] == "VICTORY"
     ss = []
 
-    if metric['metrics'][0] != "O":
-        # don't like overlap unless in overlap
-        ss.append(score_part(solution, '!O', finite))
-
-    for m in metric['metrics']:
+    for m in metric['fullmetrics']:
         if '+' in m:
             s = 0
             for mm in m.split('+'):
@@ -515,6 +538,9 @@ if __name__ == '__main__':
                 zlbb.update_community(bc)
         elif m == '7':
             for bc in check_cache(get_paretos(), True):
+                zlbb.update_community(bc)
+        elif m == '7.':
+            for bc in sorted(set(r[0][0] for r in get_records())):
                 zlbb.update_community(bc)
         elif m == '8':
             get_paretos(True)
