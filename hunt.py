@@ -477,6 +477,12 @@ def get_records(verbose=False):
             fstr = record_string(s[0])
             print(f'{cats:20} : {fstr}')
 
+            p = s[0]
+            if os.path.isdir('record'):
+                fname = os.path.join('record', short_filename(p))
+                if not os.path.isfile(fname):
+                    shutil.copy(p[1], fname)
+
     return srecs
 
 
