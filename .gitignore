@@ -1,6 +1,7 @@
+.vscode/
 *.pyc
 cache.db
 cache.db-journal
-.vscode/
+lib/
 pareto/
 record/

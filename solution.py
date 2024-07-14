@@ -1,4 +1,5 @@
 import os
+import platform
 
 remap = {}
 # tournament 2019
@@ -122,10 +123,10 @@ class Solution():
         return self.__read_number(4)
 
     def __read_string(self):
-        # todo, this has a problem with unicode characters more than 1 byte wide
-        # maybe latin1 fixed it?  idk, I hate strings
+        # idk, I hate strings
+        encoding = 'utf8' if platform.system() in ('Linux') else 'latin1'
         length = self.__read_byte()
-        out = self.data[self.c: self.c + length].decode('latin1')
+        out = self.data[self.c: self.c + length].decode(encoding)
         self.c += length
         return out
 
