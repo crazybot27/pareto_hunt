@@ -28,13 +28,13 @@ def update_community(pn):
     sql = """INSERT OR REPLACE INTO community
             (solution_file, gif_file, puzzle_name, category,
             mCost, mCycles, mArea, mInstructions,
-            mHeight, mWidth, mRate,
-            mAreaInfLevel, mAreaInfValue, mHeightInf, mWidthInf,
+            mHeight, mWidth, mBestagon, mRate,
+            mAreaInfLevel, mAreaInfValue, mHeightInf, mWidthInf, mBestagonInf,
             mTrackless, mOverlap, mLoop)
             VALUES (?,?,?,?,
             ?,?,?,?,
-            ?,?,?,
             ?,?,?,?,
+            ?,?,?,?,?,
             ?,?,?
             )"""
 
@@ -49,6 +49,7 @@ def update_community(pn):
         check_infinity(score, 'areaINFValue')
         check_infinity(score, 'heightINF')
         check_infinity(score, 'widthINF')
+        check_infinity(score, 'boundingHexINF')
 
         if score['rate'] == math.inf:
             score['loop'] = 0
@@ -57,8 +58,8 @@ def update_community(pn):
 
         datum = [j['solution'], j['gif'], pn, j['smartFormattedCategories'],
                  score['cost'], score['cycles'], score['area'], score['instructions'],
-                 score['height'], score['width'], score['rate'],
-                 score['areaINFLevel'], score['areaINFValue'], score['heightINF'], score['widthINF'],
+                 score['height'], score['width'], score['boundingHex'], score['rate'],
+                 score['areaINFLevel'], score['areaINFValue'], score['heightINF'], score['widthINF'], score['boundingHexINF'],
                  score['trackless'], score['overlap'], score['loop']]
         data.append(datum)
     db.con.executemany(sql, data)
@@ -97,44 +98,77 @@ def get_categories():
     jj = json.loads(raw)
 
     for metric in jj:
-        finite = metric["manifold"]["id"] == "VICTORY"
-        metric['fullmetrics'] = metric['metrics'][:]
-
-        # normal:  OG(C|R)A(L|)ITHW
-        # polymer: OG(C|R)A(L|)ITH(W|)
-        # prods:   OG(C|R)I(L|)AT
-
+        metric['fullmetrics'] = metric['metrics'] + [m for m in metric['manifold']['metrics'] if m not in metric['metrics']]
+        # todo, use '' instead?
         if metric['metrics'][0] != "O":
             metric['fullmetrics'].insert(0, '!O')
-
-        metric['fullmetrics'].append('g')
-
-        if finite:
-            metric['fullmetrics'].append('c')
-        else:
-            metric['fullmetrics'].append('r')
-
-        if 'PRODUCTION' in metric['puzzleTypes']:
-            metric['fullmetrics'].append('i')
-        else:
-            metric['fullmetrics'].append('a')
-
-        metric['fullmetrics'].append('l')
-
-        if 'PRODUCTION' in metric['puzzleTypes']:
-            metric['fullmetrics'].append('a')
-        else:
-            metric['fullmetrics'].append('i')
-
-        metric['fullmetrics'].append('T')
-        metric['fullmetrics'].append('h')
-        metric['fullmetrics'].append('w')
-
-        if finite:
-            metric['fullmetrics'].append('r')
-        else:
-            metric['fullmetrics'].append('c')
     return jj
+
+
+def get_manifold_sql():
+    print('Getting manifold list')
+    url = 'https://zlbb.faendir.com/om/manifolds'
+    raw = urllib.request.urlopen(url).read().decode('utf-8')
+    jj = json.loads(raw)
+
+    vic = {'g': 'mCost', 'c': 'mCycles', 'a': 'mArea', 'i': 'mInstructions', 'h': 'mHeight', 'w': 'mWidth', 'b': 'mBestagon', 'r': 'mRate', 'T': 'mTrackless', 'O': 'mOverlap', 'L': 'mLoop'}
+    inf = {'g': 'mCost', 'c': 'mCycles', 'a': '(mAreaInfLevel, mAreaInfValue)', 'i': 'mInstructions', 'h': 'mHeightInf', 'w': 'mWidthInf', 'b': 'mBestagonInf', 'r': 'mRate', 'T': 'mTrackless', 'O': 'mOverlap', 'L': 'mLoop'}
+
+    #        0                1                 2                 3         4           5        6                  7           8          9             10        11                12                13             14            15               16             17           18
+    # SELECT puzzle_name,    'db',             'solution_name',   mCost,    mCycles,    mArea,   mInstructions,     mHeight,    mWidth,    mBestagon,    mRate,    mAreaInfLevel,    mAreaInfValue,    mHeightInf,    mWidthInf,    mBestagonInf,    mTrackless,    mOverlap,    mLoop from community
+    fields = "a.puzzle_name, a.solution_file, a.solution_name, a.mcCost, a.mcCycles, a.mcArea, a.mcInstructions, a.mcHeight, a.mcWidth, a.mcBestagon, a.mcRate, a.mcAreaInfLevel, a.mcAreaInfValue, a.mcHeightInf, a.mcWidthInf, a.mcBestagonInf, a.mcTrackless, a.mcOverlap, a.mcLoop"
+
+    sqls = []
+    for manifold in jj:
+        names = vic if "VICTORY" in manifold['id'] else inf
+        ms = [names[_] for _ in manifold['metrics']]
+
+        # todo, maybe only do the IFNULL checks on relevant fields
+        name = ''.join(manifold["metrics"])
+        extra = 'AND a.mcLoop==1' if 'r' in name else ''
+
+        # , "{name}" as man
+        # a.omsimtime, "{name}" as man,
+        sql = f"""SELECT {fields}, IFNULL(a.last_check < community_cache.last_check, 0) as upToDate FROM local a
+LEFT JOIN community_cache ON a.puzzle_name = community_cache.puzzle_name
+WHERE a.valid {extra}
+AND NOT EXISTS (
+	SELECT * FROM community b
+	WHERE a.puzzle_name = b.puzzle_name
+"""
+        # There can't be anything in `community` that is better than or equal on all metrics
+        for f in ms:
+            f1 = f.replace('m', 'b.m')
+            f2 = f.replace('m', 'a.mc')
+            order = '>' if f in ('mTrackless', 'mLoop') else '<'
+            sql += f"	AND IFNULL({f1} {order}= {f2}, 1)\n"
+        sql += """)
+AND NOT EXISTS (
+	SELECT * FROM local c
+	WHERE a.puzzle_name = c.puzzle_name
+"""
+        # There can't be anything in `local` that is better than or equal on all metrics
+        for f in ms:
+            f1 = f.replace('m', 'c.mc')
+            f2 = f.replace('m', 'a.mc')
+            order = '>' if f in ('mTrackless', 'mLoop') else '<'
+            sql += f"	AND IFNULL({f1} {order}= {f2}, 1)\n"
+        sql += """	AND( 0
+"""
+        # and we check that at least 1 metric is strictly better,
+        # otherwise it will be invalided by itself
+        for f in ms:
+            f1 = f.replace('m', 'c.mc')
+            f2 = f.replace('m', 'a.mc')
+            order = '>' if f in ('mTrackless', 'mLoop') else '<'
+            sql += f"		OR IFNULL({f1} {order} {f2}, 0)\n"
+
+        sql += """	)
+)"""
+
+        sqls.append(sql)
+
+    return '\n\nUNION\n\n'.join(sqls) + '\n\nORDER BY a.puzzle_name, a.solution_file'
 
 
 def get_puzzle_name(puz):
@@ -146,3 +180,4 @@ def get_puzzle_name(puz):
 # todo: cache these locally?
 puzzles = get_puzzles()
 categories = get_categories()
+manifold_sql = get_manifold_sql()

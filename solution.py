@@ -11,6 +11,7 @@ remap["week7"] = "w1698787731"
 remap["week8"] = "w1698788220"
 remap["weekEX"] = "w1698789743"
 # tournament 2020
+remap["OM2020_W0_ConnectTheDots"] = "w3101135731"
 remap["OM2020_W1_PotentPotables"] = "w2501727721"
 remap["OM2020_W2_AmalgamatedGoldRing"] = "w2501727808"
 remap["OM2020_W3_SwampFiber"] = "w2501727889"

@@ -16,10 +16,12 @@ field_name = {
     'i': ('mcInstructions', 'mInstructions'),
     'h': ('mcHeight', 'mHeight'),
     'w': ('mcWidth', 'mWidth'),
+    'b': ('mcBestagon', 'mBestagon'),
     'r': ('mcRate', 'mRate'),
     'ainf': ('mcAreaInf', 'mAreaInf'),
     'hinf': ('mcHeightInf', 'mHeightInf'),
     'winf': ('mcWidthInf', 'mWidthInf'),
+    'binf': ('mcBestagonInf', 'mBestagonInf'),
 }
 
 
