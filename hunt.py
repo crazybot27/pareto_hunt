@@ -413,7 +413,7 @@ def get_records(verbose=False):
 
 
 if __name__ == '__main__':
-    tracked_puzzles = [f for f in os.listdir('puzzle') if f.endswith('.puzzle')]
+    tracked_puzzles = [f for f in os.listdir('puzzle') if f.endswith('.puzzle') and f[:-7] in zlbb.puzzles]
     print(len(tracked_puzzles), 'tracked puzzles')
     # todo: compare against website list and report any diff
 
