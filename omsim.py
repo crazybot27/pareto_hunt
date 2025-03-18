@@ -143,7 +143,7 @@ def get_metrics(sol):
     }
 
     err = lv.verifier_error(c_void_p(v))
-    if err:
+    if err or metrics['mcCycles'] == math.inf:
         # something went wrong, solution probably doesn't work
         print('error before victory', err)
         lv.verifier_destroy(c_void_p(v))
