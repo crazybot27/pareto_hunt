@@ -16,6 +16,7 @@ root_folders = []
 # if on windows, auto find my documents and save folder
 pp = []
 if platform.system() == 'Windows':
+    pp.append(os.path.expanduser(r"~\OneDrive\Documents\My Games\Opus Magnum"))
     pp.append(os.path.expanduser(r"~\Documents\My Games\Opus Magnum"))
 elif platform.system() == 'Darwin':
     pp.append(os.path.expanduser(r"~/Library/Application Support/Opus Magnum"))
