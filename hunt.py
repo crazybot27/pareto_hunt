@@ -9,6 +9,8 @@ from solution import Solution
 import db
 import omsim
 import zlbb
+from tkinter import *
+from tkinter import ttk
 
 # if you want to track folders besides the standard directory, add to the list below
 root_folders = []
@@ -33,6 +35,7 @@ for p in pp:  # yes, I'm great at picking variable names
 
 print(root_folders)
 
+local_stats = {}
 
 def scan_local():
     print('Scanning local files')
@@ -75,7 +78,8 @@ def scan_local():
         else:
             news.add(f)
 
-    return {
+    global local_stats
+    local_stats = {
         'local': local_files,
         'db': db_files,
 
@@ -87,7 +91,8 @@ def scan_local():
 
 
 def process_solutions():
-    local_stats = scan_local()
+
+    global local_stats
 
     # first delete all entries in db, but no longer on disk
     sql = 'DELETE FROM local WHERE solution_file = ?'
@@ -138,6 +143,8 @@ def process_solutions():
             VALUES (?,CURRENT_TIMESTAMP,?,?,?,?)"""
         db.con.execute(sql, data)
         db.con.commit()
+    
+    scan_local()
 
 
 def mismatch(verbose=False):
@@ -249,7 +256,7 @@ def record_string(record):
     return fstr
 
 
-def get_paretos(verbose=False):
+def get_paretos():
     # todo, I should figure out how to use named factories but they look like a lot of work
     # so, i'm going to be "lazy" and just count out the index of what I need in the touple.
     # sue me
@@ -257,7 +264,7 @@ def get_paretos(verbose=False):
     sql = zlbb.manifold_sql
     paretos = db.con.execute(sql).fetchall()
 
-    if verbose and paretos:
+    """if verbose and paretos:
         print('The following are pareto.  Be sure to make sure the leaderboard cache is up to date first.')
         last = paretos[0][0]  # puzzle
         for i, p in enumerate(paretos):
@@ -279,7 +286,7 @@ def get_paretos(verbose=False):
             print(fstr)
 
         if not os.path.isdir('pareto'):
-            print('If you want to get a copy of these, just make a folder named "pareto" and they\'ll be dumped there')
+            print('If you want to get a copy of these, just make a folder named "pareto" and they\'ll be dumped there')"""
         #  0                    1                      2                   3       4      5     6       7     8     9      10      11    12    13      14     15    16       17        18        19     20       21    22
         # file,                 last_check,           solution,            puzzle, valid, cost, cycles, area, inst, cost,  cycles, area, inst, height, width, rate, areainf, heighinf, widthinf, track, overlap, loop, uptodate
         # ('filename.solution', '2023-05-03 05:50:14', 'NEW SOLUTION F1', 'P090',  1,     245,  461,    83,   140,  '245', '461',  '83', 140,  7,      12.0,  77.0, 83,      7,        12.0,     0,     0,       1,    1)
@@ -287,6 +294,11 @@ def get_paretos(verbose=False):
         # todo: find out why some metrics are strings, not numbers
     return paretos
 
+def get_paretos_as_string():
+
+    paretos = get_paretos()
+    print(len(paretos))
+    return "\n\n".join([f"{i+1} {record_string(p)}" for i, p in enumerate(paretos)])
 
 def check_cache(paretos, force=False):
     bads = set(p[0] for p in paretos if p[-1] == 0 or force)
@@ -377,8 +389,9 @@ def score_whole(solution, metric):
 
     return tuple(ss)
 
+def get_records():
 
-def get_records(verbose=False):
+    paretos = get_paretos()
     puzzles = set([p[0] for p in paretos])
     recs = dict()
     for puzzle in puzzles:
@@ -398,28 +411,91 @@ def get_records(verbose=False):
 
     srecs = sorted([(rec, sorted(cats)) for rec, cats in recs.items()], key=lambda x: (x[0][0], x[1], x))
 
-    if verbose:
-        for s in srecs:
-            cats = ', '.join(s[1])
-            fstr = record_string(s[0])
-            print(f'{cats:20} : {fstr}')
-
-            p = s[0]
-            if os.path.isdir('record'):
-                fname = os.path.join('record', short_filename(p))
-                if not os.path.isfile(fname):
-                    shutil.copy(p[1], fname)
-
     return srecs
 
+def get_records_as_string():
+
+    records = get_records()
+    return "\n\n".join([f"{', '.join(s[1])} : {i+1} {record_string(s[0])}" for i, s in enumerate(records)])
+
+
+def get_stuff(stuff_to_get):
+
+    stuff = ""
+    if stuff_to_get == "Paretos":
+        stuff = get_paretos_as_string()
+    elif stuff_to_get == "Records only":
+        stuff = get_records_as_string()
+    elif stuff_to_get == "Mismatched scores":
+        stuff = mismatch()
+    if stuff == "":
+        return "No solutions found.\n"*100
+    
+    return (stuff+"\n")*100
+
+def refresh_lb():
+
+    for bc in check_cache(get_paretos(), True):
+        zlbb.update_community(bc)
 
 if __name__ == '__main__':
     tracked_puzzles = [f for f in os.listdir('puzzle') if f.endswith('.puzzle') and f[:-7] in zlbb.puzzles]
     print(len(tracked_puzzles), 'tracked puzzles')
     # todo: compare against website list and report any diff
 
-    local_stats = scan_local()
-    while True:
+    scan_local()
+    paretos = get_paretos()
+
+    #Create the window
+    root = Tk()
+    root.title("Pareto Hunt (experimental)")
+
+    content = ttk.Frame(root, borderwidth=5, padding=(10, 10, 10, 10))
+    content.grid(column=0, row=0, sticky=(N, W, E, S))
+
+    ttk.Button(content, text="Rescan solutions", command=scan_local).grid(column=0, row=1, sticky=(N, W, E, S), padx=10, pady=10)
+
+    ttk.Button(content, text="Process", command=process_solutions).grid(column=0, row=2, sticky=(N, W, E, S), padx=10, pady=10)
+
+    ttk.Button(content, text="Refresh leaderboard cache").grid(column=0, row=3, sticky=(N, W, E, S), padx=10, pady=10)
+
+    stuff_to_get = StringVar()
+
+    data_choicebox = ttk.Combobox(content, textvariable=stuff_to_get, values=("Paretos", "Records only", "Mismatched scores", "Duplicate scores", "Duplicate names"), state="readonly")
+    data_choicebox.grid(column=1, row=0, sticky=(W, E))
+
+    data_textbox = Text(content, width=20, height=20, wrap="none")
+    data_textbox.grid(column=1, row=1, columnspan=2, rowspan=3, sticky=(N, W, E, S))
+    data_scrollbary = ttk.Scrollbar(content, orient="vertical", command=data_textbox.yview)
+    data_scrollbarx = ttk.Scrollbar(content, orient="horizontal", command=data_textbox.xview)
+    data_scrollbary.grid(column=3, row=1, rowspan=3, sticky=(N, S))
+    data_scrollbarx.grid(column=1, row=4, columnspan=2, sticky=(W, E))
+    data_textbox["yscrollcommand"] = data_scrollbary.set
+    data_textbox["xscrollcommand"] = data_scrollbarx.set
+
+    ttk.Button(content, text="Get", command = lambda: data_textbox.replace(1.0, "end", get_stuff(stuff_to_get.get()))).grid(column=2, row=0, padx=10, pady=10)
+
+    status = StringVar()
+    status.set("Testing, one two three")
+
+    status_label = Label(content, anchor="nw", textvariable=status, height=3)
+    status_label.grid(column=0, row=5, columnspan=3)
+
+
+    root.columnconfigure(0, weight=1)
+    root.rowconfigure(0, weight=1)
+
+    content.columnconfigure(0, weight=0)
+    content.columnconfigure(1, weight=4)
+    content.rowconfigure(0, weight=0)
+    content.rowconfigure(1, weight=1)
+    content.rowconfigure(2, weight=1)
+    content.rowconfigure(3, weight=1)
+    content.rowconfigure(4, weight=0)
+
+    root.mainloop()
+
+    '''while True:
         paretos = get_paretos()
         bad_cache = check_cache(paretos)
         bad_cache2 = check_cache(paretos, True)
@@ -494,4 +570,4 @@ if __name__ == '__main__':
             # purge and get all the leaderboard
             zlbb.update_all()
         else:
-            print('Unrecognized selection')
+            print('Unrecognized selection')'''
